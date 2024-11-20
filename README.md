@@ -32,13 +32,19 @@ Module to send emails of pdfs out the parents if there is an email attached to t
 This is main program that gets run. UI layout, interactables and settings are defined in UIMainWindow.py, and this module handles the backend. Any changes to functions in the previous modules should flow through automatically through this script (as it just imports functions from those scripts), but any changes to UI need to be updated in UIMainWindow. Any new functionality that needs to be attached to the added UI needs to then be connected in this module. 
 
 ### To Run
+Ensure that you're running Python3.10.
+
 For Mac:
 ```
 python3 -m venv venv
-pip install -r requirements.txt
 source venv/bin/activate
+pip install -r requirements.txt
 ```
 To compile into exe:
 ```
-pyinstaller --onefile --add-data "pdf_resources;pdf_resources" --add-data "percentile_bands;percentile_bands" program_ui.py
+pyinstaller --onefile --add-data "pdf_resources:pdf_resources" --add-data "percentile_bands:percentile_bands" program_ui.py
+```
+Edit .ui file with:
+```
+designer
 ```
