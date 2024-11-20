@@ -1,5 +1,5 @@
 # Module for Selective Calculator
-
+from util import mapping_calc
 # Mapping functions
 def sttc_eng_mapping(mark):
     mapping = {0:0,
@@ -33,7 +33,10 @@ def sttc_eng_mapping(mark):
                28:45.09,
                29:47.63,
                30:50}
-    return(mapping[mark])
+    if mark in mapping:
+        return mapping[mark]
+    else:
+        mapping_calc(mark, mapping, 30, 50)
 
 def sttc_maths_mapping(mark):
     mapping = {0:0,
@@ -72,7 +75,10 @@ def sttc_maths_mapping(mark):
                33:43.07,
                34:45.52,
                35:49.5}
-    return(mapping[mark])
+    if mark in mapping:
+        return mapping[mark]
+    else:
+        mapping_calc(mark, mapping, 35, 49.5)
 
 def sttc_thinking_mapping(mark):
     mapping = {0:0,
@@ -116,7 +122,10 @@ def sttc_thinking_mapping(mark):
                38:47.5,
                39:49.03,
                40:50}
-    return(mapping[mark])
+    if mark in mapping:
+        return mapping[mark]
+    else:
+        mapping_calc(mark, mapping, 40, 50)
 
 def sttc_writing_mapping(mark):
     mapping = {0:0,
@@ -145,15 +154,18 @@ def sttc_writing_mapping(mark):
                23:46,
                24:48,
                25:50}
-    return(mapping[mark])
+    if mark in mapping:
+        return mapping[mark]
+    else:
+        mapping_calc(mark, mapping, 25, 50)
 
 # selective calc function
 def selective_calc(marks_list):
     # scale factors
-    e_scale = 0.53202
-    m_scale = 0.52459
-    t_scale = 0.88787
-    w_scale = 0.47335
+    e_scale = 0.54578
+    m_scale = 0.56031
+    t_scale = 0.79127
+    w_scale = 0.41064
     
     # change raw mark
     eng_mark = sttc_eng_mapping(marks_list[0]) * e_scale
@@ -161,4 +173,22 @@ def selective_calc(marks_list):
     thinking_mark = sttc_thinking_mapping(marks_list[2]) * t_scale
     writing_mark = sttc_writing_mapping(int(marks_list[3])) * w_scale
     
-    return(eng_mark + maths_mark + thinking_mark + writing_mark)
+    final_mark = calc_helper(eng_mark, maths_mark, thinking_mark, writing_mark)
+    return(final_mark)
+
+
+def calc_helper(eng_mark, maths_mark, thinking_mark, writing_mark):
+
+    # New 2024 weightings are 25% all
+    reweighted_thinking_skills = 0.25/0.35
+    reweighted_writing_skills = 0.25/0.15
+
+    mark = eng_mark + maths_mark + thinking_mark * reweighted_thinking_skills + writing_mark * reweighted_writing_skills
+    mark = min(120, mark)
+    mark = max(0, mark)
+
+    theoretical_max = 115.12
+    if mark >= 110:
+        mark = (mark * 120) / theoretical_max
+
+    return mark

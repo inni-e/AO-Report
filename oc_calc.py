@@ -1,4 +1,5 @@
 # Module for OC Calculator
+from util import mapping_calc
 
 def oc_eng_mapping(raw):
     mapping = {0:0,
@@ -16,7 +17,10 @@ def oc_eng_mapping(raw):
                12:43.98,
                13:49.32,
                14:50}
-    return(mapping[raw])
+    if raw in mapping:
+        return mapping[raw]
+    else:
+        mapping_calc(raw, mapping, 14, 50)
 
 def oc_maths_mapping(raw):
     mapping = {0:0,
@@ -38,7 +42,10 @@ def oc_maths_mapping(raw):
                16:49.66,
                17:49.77,
                18:50}
-    return(mapping[raw])
+    if raw in mapping:
+        return mapping[raw]
+    else:
+        mapping_calc(raw, mapping, 18, 50)
 
 def oc_thinking_mapping(raw):
     mapping = {0:0, 
@@ -60,10 +67,10 @@ def oc_thinking_mapping(raw):
                16:44.43,
                17:48,
                18:50}
-    return(mapping[raw])
-
-
-
+    if raw in mapping:
+        return mapping[raw]
+    else:
+        mapping_calc(raw, mapping, 18, 50)
 
 def oc_calc(marks_list):
     eng = (marks_list[0]/25)*14
@@ -78,39 +85,18 @@ def oc_calc(marks_list):
     
     # calculate scaled marks (using linear interpolation)
     # english
-    if int(eng) != eng:
-        floor_eng = oc_eng_mapping(int(eng))
-        ceiling_eng = oc_eng_mapping(int(eng)+1)
-        eng_mark = (floor_eng + (ceiling_eng-floor_eng)*(eng-int(eng)))*e_scale
-    else:
-        eng_mark = oc_eng_mapping(eng)*e_scale
+    eng_mark = oc_eng_mapping(eng)*e_scale
     
     # maths
-    if int(maths) != maths: 
-        floor_maths = oc_maths_mapping(int(maths))
-        ceiling_maths = oc_maths_mapping(int(maths) + 1)
-        maths_mark = (floor_maths + (ceiling_maths - floor_maths)*(maths-int(maths)))*m_scale
-    else:
-        maths_mark = oc_maths_mapping(maths)*m_scale
+    maths_mark = oc_maths_mapping(maths)*m_scale
     
     # thinking skils
-    if int(thinking) != thinking:
-        floor_ts = oc_thinking_mapping(int(thinking))
-        ceiling_ts = oc_thinking_mapping(int(thinking) + 1)
-        thinking_mark = (floor_ts + (ceiling_ts - floor_ts)*(thinking-int(thinking)))*t_scale
-    else: 
-        thinking_mark = oc_thinking_mapping(thinking)*t_scale
+    thinking_mark = oc_thinking_mapping(thinking)*t_scale
     
-    result = mean_scaled + eng_mark + maths_mark + thinking_mark
+    mark = mean_scaled + eng_mark + maths_mark + thinking_mark
     
-    
-    if eng == 14 and maths == 18 and thinking == 18:
-        return(120)
-    elif result > 100:
-        pad = (120-result)/4
-        result += pad
-        return(result)
-    elif eng == 0 and maths == 0 and thinking == 0:
-        return(0)
-    else:
-        return(result)
+    if mark > 100:
+        pad = (120 - mark) / 4
+        mark += pad
+
+    return mark
