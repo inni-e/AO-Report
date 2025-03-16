@@ -447,7 +447,7 @@ class DataProcess():
                 reading_ans_sheet = pd.read_csv('reading_q_types.csv')
             reading_ans = self.flexi_extract(dataset = self.flexi_reading.iloc[1:, ], test_type = self.test_type, is_eng = True, ans_sheet = reading_ans_sheet)
             for i in range(0, reading_ans.shape[1]):
-                self.reading_combined.iloc[-len(flexi_reading_names):, 13+3*i] = reading_ans[:, i]
+                self.reading_combined.iloc[-len(flexi_reading_names):, 13+3*i] = pd.Series(reading_ans[:, i], dtype=self.reading_combined.iloc[:, 13+3*i].dtype)
             
             # add centre tag
             self.reading_combined.iloc[-len(flexi_reading_names):, 0] = 'online'
@@ -473,7 +473,7 @@ class DataProcess():
             self.maths_combined.iloc[-len(flexi_maths_names):, 4] = self.flexi_maths.iloc[:, 4]
             maths_ans = self.flexi_extract(self.flexi_maths, self.test_type)
             for i in range(0, maths_ans.shape[1]):
-                self.maths_combined.iloc[-len(flexi_maths_names):, 13+3*i] = maths_ans[:, i]
+                self.maths_combined.iloc[-len(flexi_maths_names):, 13+3*i] = pd.Series(maths_ans[:, i], dtype=self.maths_combined.iloc[:, 13+3*i].dtype)
             
             # add centre tag
             self.maths_combined.iloc[-len(flexi_maths_names):, 0] = 'online'
@@ -498,7 +498,7 @@ class DataProcess():
             self.thinking_combined.iloc[-len(flexi_thinking_names):, 4] = self.flexi_thinking.iloc[:, 4]
             thinking_ans = self.flexi_extract(self.flexi_thinking, self.test_type)
             for i in range(0, thinking_ans.shape[1]):
-                self.thinking_combined.iloc[-len(flexi_thinking_names):, 13+3*i] = thinking_ans[:, i]
+                self.thinking_combined.iloc[-len(flexi_thinking_names):, 13+3*i] = pd.Series(thinking_ans[:, i], dtype=self.thinking_combined.iloc[:, 13+3*i].dtype)
             
             # add centre tag
             self.thinking_combined.iloc[-len(flexi_thinking_names):, 0] = 'online'

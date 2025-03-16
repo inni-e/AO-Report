@@ -472,7 +472,7 @@ class PDF(FPDF):
         except:
             questions = pd.read_csv(q_file)
         q_table = [['Question', 'Type', 'Correct Answer', '% Students Correct']]
-        q_table2 = [[str(i+1), questions.iloc[i,  0], questions.iloc[i, 1], '{:.2f}%'.format(np.sum(ans_sheet.iloc[:, i])/np.sum(~np.isnan(ans_sheet.iloc[:, i]))*100)] for i in range(0, len(questions))]
+        q_table2 = [[str(i+1), questions.iloc[i, 0], questions.iloc[i, 1], '{:.2f}%'.format(np.sum(ans_sheet.iloc[:, i])/np.sum(~pd.isna(ans_sheet.iloc[:, i]))*100)] for i in range(0, len(questions))]
         return(q_table + q_table2) 
     
     
