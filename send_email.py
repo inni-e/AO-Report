@@ -5,14 +5,23 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
+import os
+from dotenv import load_dotenv
 
+# Load environment variables from .env file
+load_dotenv()
 
 def send_email(to_email, test_name, student_name):
     server = smtplib.SMTP(host = 'smtp.gmail.com', port = 587)
     server.starttls()
-    server.login('donotreply@alphaonecollege.com.au', 'alexxiao123')
+    
+    # Get credentials from environment variables
+    email = os.environ.get('EMAIL_USER')
+    password = os.environ.get('EMAIL_PASSWORD')
+    
+    server.login(email, password)
     msg = MIMEMultipart()
-    msg['From'] = 'donotreply@alphaonecollege.com.au'
+    msg['From'] = email
     msg['To'] = to_email
     msg['Subject'] = 'Alpha One {} Report'.format(test_name)
     

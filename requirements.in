@@ -31,3 +31,6 @@ requests
 
 # Packaging
 pyinstaller
+
+# Environment
+python-dotenv
