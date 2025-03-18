@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns # Version 0.11.2 required
 from fpdf import FPDF # Version 2.3.1 required
 from collections import Counter
-from PyPDF2 import PdfFileMerger, PdfFileReader # Version 2.12.1 required
+from PyPDF2 import PdfMerger, PdfReader  # Updated imports
 
 # selective calculator module
 from selec_calc import selective_calc
@@ -148,7 +148,7 @@ class ReportCreation():
         # Email, thinking mark, and thinking ans sheet
         incomplete_df.iloc[thinking_ind, 0] = has_thinking.Name
         incomplete_df.iloc[thinking_ind, [1, 4]] = has_thinking.iloc[:, [-1, 4]]
-        incomplete_df.iloc[thinking_ind, -self.thinking_total:] = has_thinking.iloc[:, -1-self.thinking_total:-1]
+        incomplete_df.iloc[thinking_ind, -self.thinking_total:] = has_thinking.iloc[:, -1-self.thinking_total:-1].astype('float64')
         
         if has_writing is not None:
             writing_ind = [i for i in range(len(incomplete_students)) if incomplete_students[i] in list(has_writing.SID)]
@@ -735,17 +735,18 @@ reasoning as there are only 1-3 questions per category.''')
             pdf.output(pdf_name, 'F')
             
             # Merge report pdf with solutions
-            merged_pdf = PdfFileMerger()
-            merged_pdf.append(PdfFileReader(pdf_name, 'rb'))
-            merged_pdf.append(PdfFileReader('octt_sols.pdf', 'rb'))
+            merged_pdf = PdfMerger()
+            merged_pdf.append(pdf_name)
+            merged_pdf.append('octt_sols.pdf')
             merged_pdf.write(pdf_name)
+            merged_pdf.close()
         
         
         
         
         elif self.test_type == 'sttc':
             student_info = self.agg_data.iloc[student_index, ]
-            name = student_info[0]
+            name = student_info.iloc[0]
             eng_mark = student_info.reading_mark
             maths_mark = student_info.maths_mark
             thinking_mark = student_info.thinking_mark
@@ -1044,10 +1045,11 @@ Schools denoted with a '(P)' are partial selective schools.''')
             pdf.output(pdf_name, 'F')
           
             # create merged pdf with solutions
-            merged_pdf = PdfFileMerger()
-            merged_pdf.append(PdfFileReader(pdf_name, 'rb'))
-            merged_pdf.append(PdfFileReader('sttc_sols.pdf', 'rb'))
-            merged_pdf.write(pdf_name)  
+            merged_pdf = PdfMerger()
+            merged_pdf.append(pdf_name)
+            merged_pdf.append('sttc_sols.pdf')
+            merged_pdf.write(pdf_name)
+            merged_pdf.close()
         
         
         
@@ -1278,17 +1280,16 @@ if there are any concerns or errors.''')
             plt.close(writing_fig)
             pdf.image('writing_fig.png', x = 30, w = 150)
             
-            
-            
-            # Output pdf
+            # output pdf
             pdf_name =  '{}.pdf'.format(name)
             pdf.output(pdf_name, 'F')
           
             # create merged pdf with solutions
-            merged_pdf = PdfFileMerger()
-            merged_pdf.append(PdfFileReader(pdf_name, 'rb'))
-            merged_pdf.append(PdfFileReader('wemt_sols.pdf', 'rb'))
-            merged_pdf.write(pdf_name)  
+            merged_pdf = PdfMerger()
+            merged_pdf.append(pdf_name)
+            merged_pdf.append('wemt_sols.pdf')
+            merged_pdf.write(pdf_name)
+            merged_pdf.close()
           
             
             
@@ -1648,10 +1649,11 @@ if there are any concerns or errors.''')
             pdf.output(pdf_name, 'F')
 
             # create merged pdf with solutions
-            merged_pdf = PdfFileMerger()
-            merged_pdf.append(PdfFileReader(pdf_name, 'rb'))
-            merged_pdf.append(PdfFileReader('octt_sols.pdf', 'rb'))
+            merged_pdf = PdfMerger()
+            merged_pdf.append(pdf_name)
+            merged_pdf.append('octt_sols.pdf')
             merged_pdf.write(pdf_name)
+            merged_pdf.close()
             
         
         elif self.test_type == 'sttc':
@@ -2061,10 +2063,11 @@ if there are any concerns or errors.''')
             pdf.output(pdf_name, 'F')
             
             # create merged pdf with solutions
-            merged_pdf = PdfFileMerger()
-            merged_pdf.append(PdfFileReader(pdf_name, 'rb'))
-            merged_pdf.append(PdfFileReader('sttc_sols.pdf', 'rb'))
-            merged_pdf.write(pdf_name)   
+            merged_pdf = PdfMerger()
+            merged_pdf.append(pdf_name)
+            merged_pdf.append('sttc_sols.pdf')
+            merged_pdf.write(pdf_name)
+            merged_pdf.close()
         
         
         
@@ -2426,12 +2429,791 @@ if there are any concerns or errors.''')
             pdf.output(pdf_name, 'F')
             
             # create merged pdf with solutions
-            merged_pdf = PdfFileMerger()
-            merged_pdf.append(PdfFileReader(pdf_name, 'rb'))
-            merged_pdf.append(PdfFileReader('wemt_sols.pdf', 'rb'))
-            merged_pdf.write(pdf_name)   
+            merged_pdf = PdfMerger()
+            merged_pdf.append(pdf_name)
+            merged_pdf.append('wemt_sols.pdf')
+            merged_pdf.write(pdf_name)
+            merged_pdf.close()
+            
+            
+            
+                
+    # Generate incomplete pdf
+    def incomplete_pdf(self, student_index, test_name):
+        if self.test_type == 'octt':
+            student_info = self.agg_data.iloc[student_index, ]
+            name = student_info[0]
+            did_eng = False
+            did_maths = False
+            did_thinking = False
+            if ~np.isnan(student_info.reading_mark):
+                eng_mark = int(student_info.reading_mark)
+                eng_rank = int(student_info.reading_rank)
+                
+                # calculate percentile
+                if eng_rank/self.num_reading > 0.5:
+                    eng_perc = 50
+                elif eng_rank/self.num_reading > 0.25:
+                    eng_perc = 25
+                elif eng_rank/self.num_reading > 0.1:
+                    eng_perc = 15
+                else:
+                    eng_perc = 10
+                
+                did_eng = True
+            if ~np.isnan(student_info.maths_mark):
+                maths_mark = int(student_info.maths_mark)
+                maths_rank = int(student_info.maths_rank)
+                
+                if maths_rank/self.num_maths > 0.5:
+                    maths_perc = 50
+                elif maths_rank/self.num_maths > 0.25:
+                    maths_perc = 25
+                elif maths_rank/self.num_maths > 0.1:
+                    maths_perc = 15
+                else:
+                    maths_perc = 10
+                
+                did_maths = True
+            if ~np.isnan(student_info.thinking_mark):
+                thinking_mark = int(student_info.thinking_mark)
+                thinking_rank = int(student_info.thinking_rank)
+                
+                if thinking_rank/self.num_thinking > 0.5:
+                    thinking_perc = 50
+                elif thinking_rank/self.num_thinking > 0.25:
+                    thinking_perc = 25
+                elif thinking_rank/self.num_thinking > 0.1:
+                    thinking_perc = 15
+                else:
+                    thinking_perc = 10
+                
+                did_thinking = True
+            
+            # Pdf creation:
+            # initialise pdf and settings
+            pdf = PDF()
+            pdf.set_auto_page_break(auto = True)
+            pdf.set_margin(15)
+            pdf.add_font('cambria', '', 
+                    'pdf_resources/Cambria.ttf',
+                    uni = True)
+            pdf.add_font('cambria', 'B', 
+                    'pdf_resources/cambria-bold.ttf',
+                    uni = True)
+            pdf.add_font('cambria', 'I', 
+                    'pdf_resources/cambria-italic.ttf',
+                    uni = True)
+            
+            
+            
+            
+            # Page 1: Summary Page
+            pdf.add_page()
+            pdf.set_font('cambria', style = 'B', size = 23)
+            pdf.cell(0, 10, test_name, 0, 1, 'C')
+            pdf.set_font('cambria', '', size = 18)
+            pdf.cell(0, 10, 'Student: {}'.format(name), 0, 1, 'C')
+            pdf.ln(5)
+            
+            pdf.set_font('cambria', 'I', size = 14)
+            pdf.multi_cell(0, 5, 
+                        'The following report contains information on the {} ' \
+                            'exams that the student has completed. As the student ' \
+                                'did not complete every exam, the report is incomplete, including only ' \
+                                    'data on the exams taken.'.format(np.sum((did_eng, did_maths, did_thinking))))
+            
+            pdf.ln(3)
+            
+            pdf.set_font('cambria', '', size = 14)
+            summary_table = [['Summary', 'Mark']]
+            if did_eng:
+                summary_table.append(['Reading', '{}/{}'.format(eng_mark, int(self.reading_total))])
+            else:
+                summary_table.append(['Reading', 'NA'])
+            if did_maths:
+                summary_table.append(['Mathematical Reasoning', '{}/{}'.format(maths_mark, int(self.maths_total))])
+            else:
+                summary_table.append(['Mathematical Reasoning', 'NA'])
+            if did_thinking:
+                summary_table.append(['Thinking Skills', '{}/{}'.format(thinking_mark, int(self.thinking_total))])
+            else:
+                summary_table.append(['Thinking Skills', 'NA'])
+            
+            # put in NA's for OC mark and rank
+            summary_table.append(['Overall Rank', 'NA'])
+            
+            pdf.create_table(table_data = summary_table, data_size = 14, cell_width = [150, 30],  
+                            emphasize_data = ['Marks', 'Summary'], 
+                            emphasize_style = 'B')
+            
+            pdf.ln(3)
+            if did_eng:
+                pdf.image('percentile_bands/reading' + str(eng_perc) + '.png', w = 200, x= 0.5)
+            if did_maths:
+                pdf.image('percentile_bands/maths' + str(maths_perc) + '.png', w = 200, x= 0.5)
+            if did_thinking:
+                pdf.image('percentile_bands/thinking' + str(thinking_perc) + '.png', w = 200, x= 0.5)
+            
+            
+            
+            # Page 2 & 3: Reading Comprehension
+            if did_eng:
+                pdf.add_page()
+                pdf.new_section('Reading')
+                pdf.ln(5)
+            
+                # table of statistics
+                eng_table = [['Student Mark:', '{}/{}'.format(int(eng_mark), self.reading_total)],
+                            ['Student Rank:', '{}/{}'.format(int(eng_rank), self.num_reading)],
+                            ['Cohort Average:', '{:.2f}/{}'.format(np.nanmean(self.agg_data.reading_mark), self.reading_total)],
+                            ['Maximum Mark:', '{}/{}'.format(int(np.max(self.agg_data.reading_mark)), self.reading_total)]]
+                pdf.set_font('cambria', '', 14)
+                pdf.create_mark_table(eng_table)
+                
+                pdf.ln(5)
+                
+                # create chart, and put in image
+                eng_fig = plots.reading_chart(self.agg_data, eng_mark)
+                eng_fig.savefig('eng_fig.png', dpi = 500)
+                plt.close(eng_fig)
+                pdf.image('eng_fig.png', x = 30, w = 150)
+                
+                # table of question breakdown
+                eng_q_table = [['Question Type', 'Questions', 'Mark'],
+                               ['Normal Texts', 'Q1-11', '{}/11'.format(int(np.sum(student_info[10:21])))],
+                               ['Cloze Passages', 'Q12-17', '{}/6'.format(int(np.sum(student_info[21:27])))],
+                               ['Comparing Extracts', 'Q18-25', '{}/8'.format(int(np.sum(student_info[27:35])))]]
+                pdf.create_table(eng_q_table, title = 'Question Breakdown', data_size = 14, title_size = 15, 
+                                emphasize_data = ['Question Type', 'Questions', 'Mark'], emphasize_style = 'B',
+                                cell_width = [100, 60, 20])
+                
+                
+                pdf.add_page()
+                pdf.set_font('cambria', 'B', size = 14)
+                pdf.cell(10, txt = 'Reading Test Breakdown')
+                pdf.ln(5)
+                pdf.set_font('cambria', '', 10)
+                pdf.cell(0, 5, txt = 'Questions highlighted green indicate that the student responded correctly. Red highlight indicates an incorrect response.')
+                pdf.ln(5)
+                reading_qtable = pdf.questions_table('reading_q_types.xlsx', self.agg_data.iloc[:, 10:35])
+                pdf.create_question_table(reading_qtable, ans_sheet = self.agg_data.iloc[student_index, 10:35], did_test = True)
+                
+                
+            else:
+                pdf.add_page()
+                pdf.new_section('Reading')
+                pdf.ln(5)
+            
+                # table of statistics
+                eng_table = [['Student Mark:', 'NA'],
+                            ['Student Rank:', 'NA'],
+                            ['Cohort Average:', '{:.2f}/{}'.format(np.nanmean(self.agg_data.reading_mark), self.reading_total)],
+                            ['Maximum Mark:', '{}/{}'.format(int(np.max(self.agg_data.reading_mark)), self.reading_total)]]
+                pdf.set_font('cambria', '', 14)
+                pdf.create_mark_table(eng_table)
+                
+                pdf.ln(5)
+                
+                # create chart, and put in image
+                eng_fig = plots.reading_chart(self.agg_data, -1)
+                eng_fig.savefig('eng_fig.png', dpi = 500)
+                plt.close(eng_fig)
+                pdf.image('eng_fig.png', x = 30, w = 150)
+                
+                
+                pdf.add_page()
+                pdf.set_font('cambria', 'B', size = 14)
+                pdf.cell(10, txt = 'Reading Test Breakdown')
+                pdf.ln(5)
+                reading_qtable = pdf.questions_table('reading_q_types.xlsx', self.agg_data.iloc[:, 10:35])
+                pdf.create_question_table(reading_qtable, ans_sheet = self.agg_data.iloc[student_index, 10:35], did_test = False)
+                
+            
+            
+            
+            
+            
+            # Page 4 & 5: Mathematical Reasoning
+            if did_maths:
+                # Page 3 : Mathematics
+                pdf.add_page()
+                pdf.new_section('Mathematical Reasoning')
+                pdf.ln(5)
+                
+                # table of statistics
+                maths_table = [['Student Mark:', '{}/{}'.format(int(maths_mark), int(self.maths_total))],
+                               ['Student Rank:', '{}/{}'.format(int(maths_rank), int(self.num_maths))],
+                               ['Cohort Average:', '{:.2f}/{}'.format(np.nanmean(self.agg_data.maths_mark), int(self.maths_total))],
+                               ['Maximum Mark:', '{}/{}'.format(int(np.max(self.agg_data.maths_mark)), int(self.num_maths))]]
+                pdf.set_font('cambria', '', 14)
+                pdf.create_mark_table(maths_table)
+                
+                pdf.ln(5)
+                
+                # create chart, and put in image
+                maths_fig = plots.maths_chart(self.agg_data, maths_mark)
+                maths_fig.savefig('maths_fig.png', dpi = 500)
+                plt.close(maths_fig)
+                pdf.image('maths_fig.png', x = 30, w = 150)
+                
+                pdf.set_font('cambria', style = 'I', size = 14)
+                pdf.multi_cell(0, 5, 
+                            txt = '* Common questions breakdown unavailable for mathematical reasoning as there are only 1-3 questions per category.')
+                    
+            
+                # new page for every Maths Question
+                pdf.add_page()
+                pdf.set_font('cambria', 'B', size = 14)
+                pdf.cell(10, txt = 'Mathematics Test Breakdown')
+                pdf.ln(5)
+                pdf.set_font('cambria', '', 10)
+                pdf.cell(0, 5, txt = 'Questions highlighted green indicate that the student responded correctly. Red highlight indicates an incorrect response.')
+                pdf.ln(5)
+                maths_qtable = pdf.questions_table('maths_q_types.xlsx', self.agg_data.iloc[:, 35:70])
+                pdf.create_question_table(maths_qtable, self.agg_data.iloc[student_index, 35:70], did_test = True)
+                
+            else:
+                pdf.add_page()
+                pdf.new_section('Mathematical Reasoning')
+                pdf.ln(5)
+                
+                # table of statistics
+                maths_table = [['Student Mark:', 'NA'],
+                            ['Student Rank:', 'NA'],
+                            ['Cohort Average:', '{:.2f}/{}'.format(np.nanmean(self.agg_data.maths_mark), int(self.maths_total))],
+                            ['Maximum Mark:', '{}/{}'.format(int(np.max(self.agg_data.maths_mark)), int(self.maths_total))]]
+                pdf.set_font('cambria', '', 14)
+                pdf.create_mark_table(maths_table)
+                
+                pdf.ln(5)
+                
+                # create chart, and put in image
+                maths_fig = plots.maths_chart(self.agg_data, -1)
+                maths_fig.savefig('maths_fig.png', dpi = 500)
+                plt.close(maths_fig)
+                pdf.image('maths_fig.png', x = 30, w = 150)
+                
+                
+                # new page for every Maths Question
+                pdf.add_page()
+                pdf.set_font('cambria', 'B', size = 14)
+                pdf.cell(10, txt = 'Mathematics Test Breakdown')
+                pdf.ln(5)
+                maths_qtable = pdf.questions_table('maths_q_types.xlsx', self.agg_data.iloc[:, 35:70])
+                pdf.create_question_table(maths_qtable, self.agg_data.iloc[student_index, 35:70], did_test = False)
+            
+            
+            
+            
+            
+            
+            # Page 6 & 7: Thinking Skills
+            if did_thinking:
+                pdf.add_page()
+                pdf.new_section('Thinking Skills')
+                pdf.ln(5)
+                
+                # table of statistics
+                thinking_table = [['Student Mark:', '{}/{}'.format(int(thinking_mark), int(self.thinking_total))],
+                                ['Student Rank:', '{}/{}'.format(int(thinking_rank), int(self.num_thinking))],
+                                ['Cohort Average:', '{:.2f}/{}'.format(np.nanmean(self.agg_data.thinking_mark), int(self.thinking_total))],
+                                ['Maximum Mark:', '{}/{}'.format(int(np.max(self.agg_data.thinking_mark)), int(self.thinking_total))]]
+                pdf.set_font('cambria', '', 14)
+                pdf.create_mark_table(thinking_table)
+                
+                pdf.ln(5)
+                
+                # create chart, and put in image
+                thinking_fig = plots.thinking_chart(self.agg_data, thinking_mark)
+                thinking_fig.savefig('thinking_fig.png', dpi = 500)
+                plt.close(thinking_fig)
+                pdf.image('thinking_fig.png', x = 30, w = 150)
+                
+                
+                # create table of common questions student got wrong
+                thinking_q = pd.read_excel('thinking_q_types.xlsx').q_type
+                top_tq = Counter(thinking_q).most_common()[0:4]
+                t_marks = []
+                for q in top_tq:
+                    t_marks.append(np.sum(student_info.iloc[70:100].reset_index(drop = True)[thinking_q == q[0]]))
+                
+                t_common_q = [['Most Common Questions', 'Mark']]
+                t_common_q2 = [[top_tq[i][0], '{}/{}'.format(int(t_marks[i]), top_tq[i][1])] for i in range(0, 4)]
+                t_common_q = t_common_q + t_common_q2
+                
+                pdf.create_table(t_common_q, title = 'Question Breakdown', data_size = 14,
+                                title_size = 15, emphasize_data = ['Most Common Questions', 'Mark'], emphasize_style = 'B',
+                                cell_width = [150, 30])
+                
+                
+                pdf.add_page()
+                pdf.set_font('cambria', 'B', size = 14)
+                pdf.cell(10, txt = 'Thinking Skills Test Breakdown')
+                pdf.ln(5)
+                pdf.set_font('cambria', '', 10)
+                pdf.cell(0, 5, txt = 'Questions highlighted green indicate that the student responded correctly. Red highlight indicates an incorrect response.')
+                pdf.ln(5)
+                thinking_qtable = pdf.questions_table('thinking_q_types.xlsx', self.agg_data.iloc[:, 70:100])
+                pdf.create_question_table(thinking_qtable, self.agg_data.iloc[student_index, 70:100], did_test = True)
+            
+            else:
+                pdf.add_page()
+                pdf.new_section('Thinking Skills')
+                pdf.ln(5)
+                
+                # table of statistics
+                thinking_table = [['Student Mark:', 'NA'],
+                                ['Student Rank:', 'NA'],
+                                ['Cohort Average:', '{:.2f}/{}'.format(np.nanmean(self.agg_data.thinking_mark), int(self.thinking_total))],
+                                ['Maximum Mark:', '{}/{}'.format(int(np.max(self.agg_data.thinking_mark)), int(self.thinking_total))]]
+                pdf.set_font('cambria', '', 14)
+                pdf.create_mark_table(thinking_table)
+                
+                pdf.ln(5)
+                
+                # create chart, and put in image
+                thinking_fig = plots.thinking_chart(self.agg_data, -1)
+                thinking_fig.savefig('thinking_fig.png', dpi = 500)
+                plt.close(thinking_fig)
+                pdf.image('thinking_fig.png', x = 30, w = 150)
+                
+                
+                # Page 6 : Every Thinking Skills Question
+                pdf.add_page()
+                pdf.set_font('cambria', 'B', size = 14)
+                pdf.cell(10, txt = 'Thinking Skills Test Breakdown')
+                pdf.ln(5)
+                thinking_qtable = pdf.questions_table('thinking_q_types.xlsx', self.agg_data.iloc[:, 70:100])
+                pdf.create_question_table(thinking_qtable, self.agg_data.iloc[student_index, 70:100], did_test = False)
+                
+            
+            # Output pdf
+            pdf_name =  '{}.pdf'.format(name)
+            pdf.output(pdf_name, 'F')
 
-
+            # create merged pdf with solutions
+            merged_pdf = PdfMerger()
+            merged_pdf.append(pdf_name)
+            merged_pdf.append('octt_sols.pdf')
+            merged_pdf.write(pdf_name)
+            merged_pdf.close()
+            
+        
+        elif self.test_type == 'sttc':
+            student_info = self.agg_data.iloc[student_index, ]
+            name = student_info[0]
+            did_eng = False
+            did_maths = False
+            did_thinking = False
+            did_writing = False
+            if ~np.isnan(student_info.reading_mark):
+                eng_mark = int(student_info.reading_mark)
+                eng_rank = int(student_info.reading_rank)
+                
+                # calculate percentile
+                if eng_rank/self.num_reading > 0.5:
+                    eng_perc = 50
+                elif eng_rank/self.num_reading > 0.25:
+                    eng_perc = 25
+                elif eng_rank/self.num_reading > 0.1:
+                    eng_perc = 15
+                else:
+                    eng_perc = 10
+                
+                did_eng = True
+            if ~np.isnan(student_info.maths_mark):
+                maths_mark = int(student_info.maths_mark)
+                maths_rank = int(student_info.maths_rank)
+                
+                if maths_rank/self.num_maths > 0.5:
+                    maths_perc = 50
+                elif maths_rank/self.num_maths > 0.25:
+                    maths_perc = 25
+                elif maths_rank/self.num_maths > 0.1:
+                    maths_perc = 15
+                else:
+                    maths_perc = 10
+                
+                did_maths = True
+            if ~np.isnan(student_info.thinking_mark):
+                thinking_mark = int(student_info.thinking_mark)
+                thinking_rank = int(student_info.thinking_rank)
+                
+                if thinking_rank/self.num_thinking > 0.5:
+                    thinking_perc = 50
+                elif thinking_rank/self.num_thinking > 0.25:
+                    thinking_perc = 25
+                elif thinking_rank/self.num_thinking > 0.1:
+                    thinking_perc = 15
+                else:
+                    thinking_perc = 10
+                
+                did_thinking = True
+                
+            if ~np.isnan(student_info.writing_mark):
+                writing_mark = int(student_info.writing_mark)
+                writing_rank = int(student_info.writing_rank)
+                
+                if writing_rank/self.num_writing > 0.5:
+                    writing_perc = 50
+                elif writing_rank/self.num_writing  > 0.25:
+                    writing_perc = 25
+                elif writing_rank/self.num_writing  > 0.1:
+                    writing_perc = 15
+                else:
+                    writing_perc = 10
+                
+                did_writing = True
+            
+            # Pdf creation:
+            # initialise pdf and settings
+            pdf = PDF()
+            pdf.set_auto_page_break(auto = True)
+            pdf.set_margin(15)
+            pdf.add_font('cambria', '', 
+                    'pdf_resources/Cambria.ttf',
+                    uni = True)
+            pdf.add_font('cambria', 'B', 
+                    'pdf_resources/cambria-bold.ttf',
+                    uni = True)
+            pdf.add_font('cambria', 'I', 
+                    'pdf_resources/cambria-italic.ttf',
+                    uni = True)
+            
+            
+            
+            # Page 1: Summary page
+            pdf.add_page()
+            pdf.set_font('cambria', style = 'B', size = 23)
+            pdf.cell(0, 10, test_name, 0, 1, 'C')
+            pdf.set_font('cambria', '', size = 18)
+            pdf.cell(0, 10, 'Student: {}'.format(name), 0, 1, 'C')
+            pdf.ln(5)
+            
+            pdf.set_font('cambria', 'I', size = 14)
+            pdf.multi_cell(0, 5, 
+                        'The following report contains information on the {} ' \
+                            'exams that the student has completed. As the student ' \
+                                'did not complete every exam, the report is incomplete, including only ' \
+                                    'data on the exams taken.'.format(np.sum((did_eng, did_maths, did_thinking, did_writing))))
+            
+            pdf.ln(3)
+            
+            pdf.set_font('cambria', '', size = 14)
+            summary_table = [['Summary', 'Mark']]
+            if did_eng:
+                summary_table.append(['Reading', '{}/{}'.format(eng_mark, int(self.reading_total))])
+            else:
+                summary_table.append(['Reading', 'NA'])
+            if did_maths:
+                summary_table.append(['Mathematical Reasoning', '{}/{}'.format(maths_mark, int(self.maths_total))])
+            else:
+                summary_table.append(['Mathematical Reasoning', 'NA'])
+            if did_thinking:
+                summary_table.append(['Thinking Skills', '{}/{}'.format(thinking_mark, int(self.thinking_total))])
+            else:
+                summary_table.append(['Thinking Skills', 'NA'])
+            if did_writing: 
+                summary_table.append(['Writing', '{}/{}'.format(writing_mark, int(self.writing_total))])
+            else:
+                summary_table.append(['Writing', 'NA'])
+            
+            summary_table.append(['Overall Rank', 'NA'])
+            
+            pdf.create_table(table_data = summary_table, data_size = 14, cell_width = [150, 30],  
+                            emphasize_data = ['Marks', 'Summary'], 
+                            emphasize_style = 'B')
+            
+            pdf.ln(3)
+            if did_eng:
+                pdf.image('percentile_bands/reading' + str(eng_perc) + '.png', w = 200, x= 0.5)
+            if did_maths:
+                pdf.image('percentile_bands/maths' + str(maths_perc) + '.png', w = 200, x= 0.5)
+            if did_thinking:
+                pdf.image('percentile_bands/thinking' + str(thinking_perc) + '.png', w = 200, x= 0.5)
+            if did_writing:
+                pdf.image('percentile_bands/writing' + str(writing_perc) + '.png', w = 200, x= 0.5)
+            
+            
+            
+            # Page 2 & 3: Reading Comprehension
+            if did_eng:
+                pdf.add_page()
+                pdf.new_section('Reading')
+                pdf.ln(5)
+            
+                # table of statistics
+                eng_table = [['Student Mark:', '{}/{}'.format(int(eng_mark), self.reading_total)],
+                            ['Student Rank:', '{}/{}'.format(int(eng_rank), self.num_reading)],
+                            ['Cohort Average:', '{:.2f}/{}'.format(np.nanmean(self.agg_data.reading_mark), self.reading_total)],
+                            ['Maximum Mark:', '{}/{}'.format(int(np.max(self.agg_data.reading_mark)), self.reading_total)]]
+                pdf.set_font('cambria', '', 14)
+                pdf.create_mark_table(eng_table)
+                
+                pdf.ln(5)
+                
+                # create chart, and put in image
+                eng_fig = plots.reading_chart(self.agg_data, eng_mark)
+                eng_fig.savefig('eng_fig.png', dpi = 500)
+                plt.close(eng_fig)
+                pdf.image('eng_fig.png', x = 30, w = 150)
+                
+                # table of question breakdown
+                eng_q_table = [['Question Type', 'Questions', 'Mark'],
+                            ['Normal Texts', 'Q1-14', '{}/14'.format(int(np.sum(student_info[12:26])))],
+                            ['Cloze Passages', 'Q15-20', '{}/6'.format(int(np.sum(student_info[26:32])))],
+                            ['Comparing Extracts', 'Q21-30', '{}/10'.format(int(np.sum(student_info[32:42])))]]
+                pdf.create_table(eng_q_table, title = 'Question Breakdown', data_size = 14, title_size = 15, 
+                                emphasize_data = ['Question Type', 'Questions', 'Mark'], emphasize_style = 'B',
+                                cell_width = [100, 60, 20])
+                
+                # every reading comp question
+                pdf.add_page()
+                pdf.set_font('cambria', 'B', size = 14)
+                pdf.cell(10, txt = 'Reading Test Breakdown')
+                pdf.ln(5)
+                pdf.set_font('cambria', '', 10)
+                pdf.cell(0, 5, txt = 'Questions highlighted green indicate that the student responded correctly. Red highlight indicates an incorrect response.')
+                pdf.ln(5)
+                reading_qtable = pdf.questions_table('reading_q_types.xlsx', self.agg_data.iloc[:, 12:42])
+                pdf.create_question_table(reading_qtable, self.agg_data.iloc[student_index, 12:42], did_test = True)
+            
+                
+            else:
+                pdf.add_page()
+                pdf.new_section('Reading')
+                pdf.ln(5)
+            
+                # table of statistics
+                eng_table = [['Student Mark:', 'NA'],
+                            ['Student Rank:', 'NA'],
+                            ['Cohort Average:', '{:.2f}/{}'.format(np.nanmean(self.agg_data.reading_mark), self.reading_total)],
+                            ['Maximum Mark:', '{}/{}'.format(int(np.max(self.agg_data.reading_mark)), self.reading_total)]]
+                pdf.set_font('cambria', '', 14)
+                pdf.create_mark_table(eng_table)
+                
+                pdf.ln(5)
+                
+                # create chart, and put in image
+                eng_fig = plots.reading_chart(self.agg_data, -1)
+                eng_fig.savefig('eng_fig.png', dpi = 500)
+                plt.close(eng_fig)
+                pdf.image('eng_fig.png', x = 30, w = 150)
+            
+                # every reading comp question
+                pdf.add_page()
+                pdf.set_font('cambria', 'B', size = 14)
+                pdf.cell(10, txt = 'Reading Test Breakdown')
+                pdf.ln(5)
+                reading_qtable = pdf.questions_table('reading_q_types.xlsx', self.agg_data.iloc[:, 12:42])
+                pdf.create_question_table(reading_qtable, self.agg_data.iloc[student_index, 12:42], did_test = False)
+            
+            
+            # Page 4 & 5: Mathematical Reasoning
+            if did_maths:
+                pdf.add_page()
+                pdf.new_section('Mathematical Reasoning')
+                pdf.ln(5)
+                
+                # table of statistics
+                maths_table = [['Student Mark:', '{}/{}'.format(int(maths_mark), int(self.maths_total))],
+                            ['Student Rank:', '{}/{}'.format(int(maths_rank), int(self.num_maths))],
+                            ['Cohort Average:', '{:.2f}/{}'.format(np.nanmean(self.agg_data.maths_mark), int(self.maths_total))],
+                            ['Maximum Mark:', '{}/{}'.format(int(np.max(self.agg_data.maths_mark)), int(self.maths_total))]]
+                pdf.set_font('cambria', '', 14)
+                pdf.create_mark_table(maths_table)
+                
+                pdf.ln(5)
+                
+                # create chart, and put in image
+                maths_fig = plots.maths_chart(self.agg_data, maths_mark)
+                maths_fig.savefig('maths_fig.png', dpi = 500)
+                plt.close(maths_fig)
+                pdf.image('maths_fig.png', x = 30, w = 150)
+                
+                # message to say no maths question breakdown
+                pdf.set_font('cambria', style = 'I', size = 14)
+                pdf.multi_cell(0, 5, 
+                            txt = '* The maths question breakdown will come at a later date while we revamp the question classification system.')
+                
+                
+                
+                # new page for every Maths Question
+                pdf.add_page()
+                pdf.set_font('cambria', 'B', size = 14)
+                pdf.cell(10, txt = 'Mathematics Test Breakdown')
+                pdf.ln(5)
+                pdf.set_font('cambria', '', 10)
+                pdf.cell(0, 5, txt = 'Questions highlighted green indicate that the student responded correctly. Red highlight indicates an incorrect response.')
+                pdf.ln(5)
+                maths_qtable = pdf.questions_table('maths_q_types.xlsx', self.agg_data.iloc[:, 42:77])
+                pdf.create_question_table(maths_qtable, self.agg_data.iloc[student_index, 42:77], did_test = True)
+                
+            else:
+                # Page 3 : Mathematics
+                pdf.add_page()
+                pdf.new_section('Mathematical Reasoning')
+                pdf.ln(5)
+                
+                # table of statistics
+                maths_table = [['Student Mark:', 'NA'],
+                            ['Student Rank:', 'NA'],
+                            ['Cohort Average:', '{:.2f}/{}'.format(np.nanmean(self.agg_data.maths_mark), int(self.maths_total))],
+                            ['Maximum Mark:', '{}/{}'.format(int(np.max(self.agg_data.maths_mark)), int(self.maths_total))]]
+                pdf.set_font('cambria', '', 14)
+                pdf.create_mark_table(maths_table)
+                
+                pdf.ln(5)
+                
+                # create chart, and put in image
+                maths_fig = plots.maths_chart(self.agg_data, -1)
+                maths_fig.savefig('maths_fig.png', dpi = 500)
+                plt.close(maths_fig)
+                pdf.image('maths_fig.png', x = 30, w = 150)
+                
+                
+                # new page for every Maths Question
+                pdf.add_page()
+                pdf.set_font('cambria', 'B', size = 14)
+                pdf.cell(10, txt = 'Mathematics Test Breakdown')
+                pdf.ln(5)
+                maths_qtable = pdf.questions_table('maths_q_types.xlsx', self.agg_data.iloc[:, 42:77])
+                pdf.create_question_table(maths_qtable, self.agg_data.iloc[student_index, 42:77], did_test = False)
+            
+            # Page 6 & 7: Thinking Skills
+            if did_thinking:
+                pdf.add_page()
+                pdf.new_section('Thinking Skills')
+                pdf.ln(5)
+                
+                # table of statistics
+                thinking_table = [['Student Mark:', '{}/{}'.format(int(thinking_mark), int(self.thinking_total))],
+                                ['Student Rank:', '{}/{}'.format(int(thinking_rank), int(self.num_thinking))],
+                                ['Cohort Average:', '{:.2f}/{}'.format(np.nanmean(self.agg_data.thinking_mark), int(self.thinking_total))],
+                                ['Maximum Mark:', '{}/{}'.format(int(np.max(self.agg_data.thinking_mark)), int(self.thinking_total))]]
+                pdf.set_font('cambria', '', 14)
+                pdf.create_mark_table(thinking_table)
+                
+                pdf.ln(5)
+                
+                # create chart, and put in image
+                thinking_fig = plots.thinking_chart(self.agg_data, thinking_mark)
+                thinking_fig.savefig('thinking_fig.png', dpi = 500)
+                plt.close(thinking_fig)
+                pdf.image('thinking_fig.png', x = 30, w = 150)
+                
+                
+                # create table of common questions student got wrong
+                thinking_q = pd.read_excel('thinking_q_types.xlsx').q_type
+                top_tq = Counter(thinking_q).most_common()[0:4]
+                t_marks = []
+                for q in top_tq:
+                    t_marks.append(np.sum(student_info.iloc[77:117].reset_index(drop = True)[thinking_q == q[0]]))
+                
+                t_common_q = [['Most Common Questions', 'Mark']]
+                t_common_q2 = [[top_tq[i][0], '{}/{}'.format(int(t_marks[i]), top_tq[i][1])] for i in range(0, 4)]
+                t_common_q = t_common_q + t_common_q2
+                
+                pdf.create_table(t_common_q, title = 'Question Breakdown', data_size = 14,
+                                title_size = 15, emphasize_data = ['Most Common Questions', 'Mark'], emphasize_style = 'B',
+                                cell_width = [150, 30])
+                
+                
+                pdf.add_page()
+                pdf.set_font('cambria', 'B', size = 14)
+                pdf.cell(10, txt = 'Thinking Skills Test Breakdown')
+                pdf.ln(5)
+                pdf.set_font('cambria', '', 10)
+                pdf.cell(0, 5, txt = 'Questions highlighted green indicate that the student responded correctly. Red highlight indicates an incorrect response.')
+                pdf.ln(5)
+                thinking_qtable = pdf.questions_table('thinking_q_types.xlsx', self.agg_data.iloc[:, 77:117])
+                pdf.create_question_table(thinking_qtable, self.agg_data.iloc[student_index, 77:117], did_test = True)
+            
+            else:
+                pdf.add_page()
+                pdf.new_section('Thinking Skills')
+                pdf.ln(5)
+                
+                # table of statistics
+                thinking_table = [['Student Mark:', 'NA'],
+                                ['Student Rank:', 'NA'],
+                                ['Cohort Average:', '{:.2f}/{}'.format(np.nanmean(self.agg_data.thinking_mark), int(self.thinking_total))],
+                                ['Maximum Mark:', '{}/{}'.format(int(np.max(self.agg_data.thinking_mark)), int(self.thinking_total))]]
+                pdf.set_font('cambria', '', 14)
+                pdf.create_mark_table(thinking_table)
+                
+                pdf.ln(5)
+                
+                # create chart, and put in image
+                thinking_fig = plots.thinking_chart(self.agg_data, -1)
+                thinking_fig.savefig('thinking_fig.png', dpi = 500)
+                plt.close(thinking_fig)
+                pdf.image('thinking_fig.png', x = 30, w = 150)
+                
+                # Page 6 : Every Thinking Skills Question
+                pdf.add_page()
+                pdf.set_font('cambria', 'B', size = 14)
+                pdf.cell(10, txt = 'Thinking Skills Test Breakdown')
+                pdf.ln(5)
+                thinking_qtable = pdf.questions_table('thinking_q_types.xlsx', self.agg_data.iloc[:, 77:117])
+                pdf.create_question_table(thinking_qtable, self.agg_data.iloc[student_index, 77:117], did_test = False)
+            
+            # create writing page if necessary
+            if did_writing:
+                pdf.add_page()
+                pdf.new_section('Writing')
+                pdf.ln(5)
+                
+                # table of statistics
+                writing_table = [['Student Mark:', '{}/{}'.format(int(writing_mark), int(self.writing_total))],
+                                ['Student Rank:', '{}/{}'.format(int(writing_rank), int(self.num_writing))],
+                                ['Cohort Average:', '{:.2f}/{}'.format(np.mean(self.agg_data.writing_mark), self.writing_total)],
+                                ['Maximum Mark:', '{}/{}'.format(int(np.max(self.agg_data.writing_mark)), self.writing_total)]]
+                pdf.set_font('cambria', '', 14)
+                pdf.create_mark_table(writing_table)
+                
+                pdf.ln(5)
+                
+                # create chart, and put in image
+                writing_fig = plots.writing_chart(self.agg_data, writing_mark)
+                writing_fig.savefig('writing_fig.png', dpi = 500)
+                plt.close(writing_fig)
+                pdf.image('writing_fig.png', x = 30, w = 150)
+                
+            else:
+                pdf.add_page()
+                pdf.new_section('Writing')
+                pdf.ln(5)
+                
+                # table of statistics
+                writing_table = [['Student Mark:', 'NA'],
+                                ['Student Rank:', 'NA'],
+                                ['Cohort Average:', '{:.2f}/{}'.format(np.mean(self.agg_data.writing_mark), self.writing_total)],
+                                ['Maximum Mark:', '{}/{}'.format(int(np.max(self.agg_data.writing_mark)), self.writing_total)]]
+                pdf.set_font('cambria', '', 14)
+                pdf.create_mark_table(writing_table)
+                
+                pdf.ln(5)
+                
+                # create chart, and put in image
+                writing_fig = plots.writing_chart(self.agg_data, -1)
+                writing_fig.savefig('writing_fig.png', dpi = 500)
+                plt.close(writing_fig)
+                pdf.image('writing_fig.png', x = 30, w = 150)
+                
+            # output pdf
+            pdf_name = '{}.pdf'.format(name)
+            pdf.output(pdf_name, 'F')
+            
+            # create merged pdf with solutions
+            merged_pdf = PdfMerger()
+            merged_pdf.append(pdf_name)
+            merged_pdf.append('sttc_sols.pdf')
+            merged_pdf.write(pdf_name)
+            merged_pdf.close()
+            
+            
             
         
     
